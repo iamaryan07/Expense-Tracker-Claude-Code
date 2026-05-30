@@ -16,7 +16,7 @@ metadata:
 | GET /profile (+ date filter) | Implemented       | tests/test_06-date-filter-profile.py    |
 | GET+POST /expenses/add       | Implemented       | tests/test_07-add-expense.py            |
 | GET+POST /expenses/<id>/edit | Implemented       | tests/test_08-edit-expense.py           |
-| GET /expenses/<id>/delete    | Stub (step 9)     | — do not test                           |
+| GET+POST /expenses/<id>/delete | Implemented (step 9) | tests/test_09-delete-expense.py      |
 
 ## Profile route filter behavior
 - `preset` param: `this-month`, `last-month`, `last-3-months`, `all-time` (default), `custom`

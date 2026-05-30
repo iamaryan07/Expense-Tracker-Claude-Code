@@ -1,3 +1,4 @@
+import secrets
 import sqlite3
 from datetime import datetime, date, timedelta
 from flask import Flask, render_template, request, redirect, url_for, flash, session, abort
@@ -7,6 +8,7 @@ from database.db import (
     get_user_by_id, get_expense_stats,
     get_recent_transactions, get_category_breakdown,
     insert_expense, get_expense_by_id, update_expense,
+    delete_expense as db_delete_expense,
 )
 
 CATEGORIES = ["Food", "Transport", "Bills", "Health", "Entertainment", "Shopping", "Other"]
@@ -240,9 +242,26 @@ def edit_expense(expense_id):
                            today=date.today().isoformat())
 
 
-@app.route("/expenses/<int:id>/delete")
-def delete_expense(id):
-    return "Delete expense — coming in Step 9"
+@app.route("/expenses/<int:expense_id>/delete", methods=["GET", "POST"])
+def delete_expense(expense_id):
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    expense = get_expense_by_id(expense_id)
+    if expense is None:
+        abort(404)
+    if expense["user_id"] != session["user_id"]:
+        abort(403)
+
+    if request.method == "POST":
+        if request.form.get("csrf_token") != session.get("csrf_token"):
+            abort(403)
+        db_delete_expense(expense_id, session["user_id"])
+        flash("Expense deleted.")
+        return redirect(url_for("profile"))
+
+    session["csrf_token"] = secrets.token_hex(32)
+    return render_template("delete_expense.html", expense=expense)
 
 
 if __name__ == "__main__":
