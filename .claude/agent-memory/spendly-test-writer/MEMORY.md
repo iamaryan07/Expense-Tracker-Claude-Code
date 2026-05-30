@@ -1,0 +1,3 @@
+- [Fixture Patterns](project-fixture-patterns.md) — per-test temp DB via patch.object(db_module, "DB_PATH"), session injection via session_transaction()
+- [DB Schema](project-db-schema.md) — users/expenses tables, all DB helper signatures with optional date params
+- [Route Coverage](project-route-coverage.md) — which routes are implemented vs stub, and which have test files

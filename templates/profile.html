@@ -23,6 +23,26 @@
         <!-- Right column -->
         <div class="profile-right">
 
+            <!-- Date filter bar -->
+            <div class="filter-bar">
+                <a href="{{ url_for('profile', preset='this-month') }}"
+                   class="filter-btn {% if active_preset == 'this-month' %}filter-btn--active{% endif %}">This Month</a>
+                <a href="{{ url_for('profile', preset='last-month') }}"
+                   class="filter-btn {% if active_preset == 'last-month' %}filter-btn--active{% endif %}">Last Month</a>
+                <a href="{{ url_for('profile', preset='last-3-months') }}"
+                   class="filter-btn {% if active_preset == 'last-3-months' %}filter-btn--active{% endif %}">Last 3 Months</a>
+                <a href="{{ url_for('profile', preset='all-time') }}"
+                   class="filter-btn {% if active_preset == 'all-time' %}filter-btn--active{% endif %}">All Time</a>
+                <form class="filter-custom" method="get" action="{{ url_for('profile') }}">
+                    <input type="hidden" name="preset" value="custom">
+                    <input type="date" name="start" value="{{ start_date or '' }}">
+                    <span>–</span>
+                    <input type="date" name="end" value="{{ end_date or '' }}">
+                    <button type="submit" class="btn-ghost filter-submit">Filter</button>
+                </form>
+            </div>
+            <p class="filter-label">{{ filter_label }}</p>
+
             <!-- Summary stats -->
             <div class="stat-grid">
                 <div class="stat-tile">
