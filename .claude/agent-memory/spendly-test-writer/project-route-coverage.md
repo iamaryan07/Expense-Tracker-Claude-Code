@@ -14,7 +14,7 @@ metadata:
 | GET /login + POST            | Implemented       | none yet                                |
 | GET /logout                  | Implemented       | none yet                                |
 | GET /profile (+ date filter) | Implemented       | tests/test_06-date-filter-profile.py    |
-| GET /expenses/add            | Stub (step 7)     | — do not test                           |
+| GET+POST /expenses/add       | Implemented       | tests/test_07-add-expense.py            |
 | GET /expenses/<id>/edit      | Stub (step 8)     | — do not test                           |
 | GET /expenses/<id>/delete    | Stub (step 9)     | — do not test                           |
 

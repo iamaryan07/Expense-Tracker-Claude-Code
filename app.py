@@ -6,7 +6,10 @@ from database.db import (
     init_db, seed_db, create_user, get_user_by_email,
     get_user_by_id, get_expense_stats,
     get_recent_transactions, get_category_breakdown,
+    insert_expense,
 )
+
+CATEGORIES = ["Food", "Transport", "Bills", "Health", "Entertainment", "Shopping", "Other"]
 
 app = Flask(__name__)
 app.secret_key = "dev-secret-key"
@@ -61,6 +64,8 @@ def landing():
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
+    if session.get("user_id"):
+        return redirect(url_for("profile"))
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         email = request.form.get("email", "").strip()
@@ -88,6 +93,8 @@ def register():
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
+    if session.get("user_id"):
+        return redirect(url_for("profile"))
     if request.method == "POST":
         email = request.form.get("email", "").strip()
         password = request.form.get("password", "")
@@ -153,9 +160,52 @@ def profile():
                            end_date=end_date, filter_label=filter_label)
 
 
-@app.route("/expenses/add")
+def _validate_expense_form(form):
+    """Returns (data_dict, None) on success or (None, error_message) on failure."""
+    amount_str = form.get("amount", "").strip()
+    category = form.get("category", "").strip()
+    date_str = form.get("date", "").strip()
+    description = form.get("description", "").strip() or None
+
+    try:
+        amount = float(amount_str)
+        if amount <= 0 or amount > 1_000_000:
+            raise ValueError
+    except ValueError:
+        return None, "Amount must be a number between 0.01 and 1,000,000."
+
+    if category not in CATEGORIES:
+        return None, "Please select a valid category."
+
+    try:
+        parsed_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        if parsed_date > date.today() or parsed_date.year < 2000:
+            raise ValueError
+    except ValueError:
+        return None, "Date must be a valid date between 2000-01-01 and today."
+
+    return {"amount": amount, "category": category, "date": date_str, "description": description}, None
+
+
+@app.route("/expenses/add", methods=["GET", "POST"])
 def add_expense():
-    return "Add expense — coming in Step 7"
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+        data, error = _validate_expense_form(request.form)
+        if error:
+            return render_template("add_expense.html",
+                                   error=error,
+                                   form=request.form,
+                                   categories=CATEGORIES,
+                                   today=date.today().isoformat()), 200
+        insert_expense(session["user_id"], **data)
+        return redirect(url_for("profile"))
+
+    return render_template("add_expense.html",
+                           categories=CATEGORIES,
+                           today=date.today().isoformat())
 
 
 @app.route("/expenses/<int:id>/edit")
