@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Delete Expense — Spendly{% endblock %}
+
+{% block content %}
+<section class="auth-section">
+    <div class="auth-container">
+
+        <div class="auth-header">
+            <h1 class="auth-title">Delete Expense</h1>
+            <p class="auth-subtitle">This action cannot be undone</p>
+        </div>
+
+        <div class="auth-card">
+            <div class="expense-details">
+                <div class="form-group">
+                    <label>Amount</label>
+                    <p class="form-static">₹{{ "%.2f"|format(expense['amount']) }}</p>
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <p class="form-static">{{ expense['category'] }}</p>
+                </div>
+                <div class="form-group">
+                    <label>Date</label>
+                    <p class="form-static">{{ expense['date'] }}</p>
+                </div>
+                {% if expense['description'] %}
+                <div class="form-group">
+                    <label>Description</label>
+                    <p class="form-static">{{ expense['description'] }}</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <form method="POST" action="{{ url_for('delete_expense', expense_id=expense['id']) }}">
+                <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+                <button type="submit" class="btn-submit btn-danger">Delete Expense</button>
+            </form>
+        </div>
+
+        <p class="auth-switch">
+            <a href="{{ url_for('profile') }}">Cancel — back to profile</a>
+        </p>
+
+    </div>
+</section>
+{% endblock %}
