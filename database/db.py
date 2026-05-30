@@ -89,3 +89,71 @@ def get_user_by_email(email):
     ).fetchone()
     conn.close()
     return user
+
+
+def get_user_by_id(user_id):
+    conn = get_db()
+    user = conn.execute(
+        "SELECT * FROM users WHERE id = ?", (user_id,)
+    ).fetchone()
+    conn.close()
+    return user
+
+
+def get_expense_stats(user_id):
+    conn = get_db()
+    row = conn.execute(
+        "SELECT SUM(amount) AS total, COUNT(*) AS cnt FROM expenses WHERE user_id = ?",
+        (user_id,)
+    ).fetchone()
+    top = conn.execute(
+        """SELECT category, SUM(amount) AS s FROM expenses
+           WHERE user_id = ? GROUP BY category ORDER BY s DESC LIMIT 1""",
+        (user_id,)
+    ).fetchone()
+    conn.close()
+    total = row["total"] or 0.0
+    return {
+        "total_spent": f"₹{total:,.2f}",
+        "transaction_count": row["cnt"],
+        "top_category": top["category"] if top else "—",
+    }
+
+
+def get_recent_transactions(user_id, limit=5):
+    conn = get_db()
+    rows = conn.execute(
+        """SELECT date, description, category, amount
+           FROM expenses WHERE user_id = ?
+           ORDER BY date DESC, id DESC LIMIT ?""",
+        (user_id, limit)
+    ).fetchall()
+    conn.close()
+    return [
+        {
+            "date": r["date"],
+            "description": r["description"],
+            "category": r["category"],
+            "amount": f"₹{r['amount']:,.2f}",
+        }
+        for r in rows
+    ]
+
+
+def get_category_breakdown(user_id):
+    conn = get_db()
+    rows = conn.execute(
+        """SELECT category, SUM(amount) AS s FROM expenses
+           WHERE user_id = ? GROUP BY category ORDER BY s DESC""",
+        (user_id,)
+    ).fetchall()
+    conn.close()
+    total = sum(r["s"] for r in rows) or 1
+    return [
+        {
+            "name": r["category"],
+            "amount": f"₹{r['s']:,.2f}",
+            "pct": round(r["s"] / total * 100),
+        }
+        for r in rows
+    ]

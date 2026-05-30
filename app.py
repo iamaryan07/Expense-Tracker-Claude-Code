@@ -1,7 +1,12 @@
 import sqlite3
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from datetime import datetime
+from flask import Flask, render_template, request, redirect, url_for, flash, session, abort
 from werkzeug.security import check_password_hash
-from database.db import init_db, seed_db, create_user, get_user_by_email
+from database.db import (
+    init_db, seed_db, create_user, get_user_by_email,
+    get_user_by_id, get_expense_stats,
+    get_recent_transactions, get_category_breakdown,
+)
 
 app = Flask(__name__)
 app.secret_key = "dev-secret-key"
@@ -83,33 +88,25 @@ def profile():
     if not session.get("user_id"):
         return redirect(url_for("login"))
 
+    user_row = get_user_by_id(session["user_id"])
+    if user_row is None:
+        abort(404)
+
+    words = user_row["name"].split()
+    initials = "".join(w[0].upper() for w in words[:2])
+    dt = datetime.strptime(user_row["created_at"][:10], "%Y-%m-%d")
+    member_since = dt.strftime("%B %Y")
+
     user = {
-        "name": "Aryan Balhara",
-        "email": "aryan@example.com",
-        "member_since": "January 2025",
-        "initials": "AB",
+        "name": user_row["name"],
+        "email": user_row["email"],
+        "member_since": member_since,
+        "initials": initials,
     }
-    stats = {
-        "total_spent": "₹5,599.00",
-        "transaction_count": 8,
-        "top_category": "Shopping",
-    }
-    transactions = [
-        {"date": "2025-05-20", "description": "Birthday gift",       "category": "Other",         "amount": "₹500.00"},
-        {"date": "2025-05-17", "description": "Coffee and snacks",   "category": "Food",          "amount": "₹80.00"},
-        {"date": "2025-05-14", "description": "New headphones",      "category": "Shopping",      "amount": "₹2,300.00"},
-        {"date": "2025-05-10", "description": "Netflix subscription", "category": "Entertainment", "amount": "₹599.00"},
-        {"date": "2025-05-08", "description": "Pharmacy — vitamins", "category": "Health",        "amount": "₹350.00"},
-    ]
-    categories = [
-        {"name": "Shopping",      "amount": "₹2,300.00", "pct": 41},
-        {"name": "Bills",         "amount": "₹1,200.00", "pct": 21},
-        {"name": "Entertainment", "amount": "₹599.00",   "pct": 11},
-        {"name": "Food",          "amount": "₹530.00",   "pct": 10},
-        {"name": "Other",         "amount": "₹500.00",   "pct": 9},
-        {"name": "Health",        "amount": "₹350.00",   "pct": 6},
-        {"name": "Transport",     "amount": "₹120.00",   "pct": 2},
-    ]
+    stats        = get_expense_stats(session["user_id"])
+    transactions = get_recent_transactions(session["user_id"])
+    categories   = get_category_breakdown(session["user_id"])
+
     return render_template("profile.html", user=user, stats=stats,
                            transactions=transactions, categories=categories)
 
