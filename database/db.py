@@ -125,23 +125,27 @@ def get_expense_stats(user_id, start_date=None, end_date=None):
     }
 
 
-def get_recent_transactions(user_id, limit=5, start_date=None, end_date=None):
+def get_recent_transactions(user_id, limit=None, start_date=None, end_date=None):
     conn = get_db()
     date_clause = ""
     params = [user_id]
     if start_date and end_date:
         date_clause = " AND date BETWEEN ? AND ?"
         params += [start_date, end_date]
-    params.append(limit)
+    limit_clause = ""
+    if limit is not None:
+        limit_clause = " LIMIT ?"
+        params.append(limit)
     rows = conn.execute(
-        "SELECT date, description, category, amount"
+        "SELECT id, date, description, category, amount"
         " FROM expenses WHERE user_id = ?" + date_clause +
-        " ORDER BY date DESC, id DESC LIMIT ?",
+        " ORDER BY date DESC, id DESC" + limit_clause,
         params
     ).fetchall()
     conn.close()
     return [
         {
+            "id": r["id"],
             "date": r["date"],
             "description": r["description"],
             "category": r["category"],
@@ -173,6 +177,28 @@ def get_category_breakdown(user_id, start_date=None, end_date=None):
         }
         for r in rows
     ]
+
+
+def get_expense_by_id(expense_id):
+    conn = get_db()
+    row = conn.execute(
+        "SELECT id, user_id, amount, category, date, description"
+        " FROM expenses WHERE id = ?",
+        (expense_id,)
+    ).fetchone()
+    conn.close()
+    return row
+
+
+def update_expense(expense_id, user_id, amount, category, date, description):
+    conn = get_db()
+    conn.execute(
+        "UPDATE expenses SET amount = ?, category = ?, date = ?, description = ?"
+        " WHERE id = ? AND user_id = ?",
+        (amount, category, date, description, expense_id, user_id),
+    )
+    conn.commit()
+    conn.close()
 
 
 def insert_expense(user_id, amount, category, date, description):

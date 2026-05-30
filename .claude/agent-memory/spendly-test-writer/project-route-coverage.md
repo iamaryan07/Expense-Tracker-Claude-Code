@@ -15,7 +15,7 @@ metadata:
 | GET /logout                  | Implemented       | none yet                                |
 | GET /profile (+ date filter) | Implemented       | tests/test_06-date-filter-profile.py    |
 | GET+POST /expenses/add       | Implemented       | tests/test_07-add-expense.py            |
-| GET /expenses/<id>/edit      | Stub (step 8)     | — do not test                           |
+| GET+POST /expenses/<id>/edit | Implemented       | tests/test_08-edit-expense.py           |
 | GET /expenses/<id>/delete    | Stub (step 9)     | — do not test                           |
 
 ## Profile route filter behavior
