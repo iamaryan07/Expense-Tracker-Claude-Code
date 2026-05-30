@@ -1,5 +1,5 @@
 import sqlite3
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from flask import Flask, render_template, request, redirect, url_for, flash, session, abort
 from werkzeug.security import check_password_hash
 from database.db import (
@@ -14,6 +14,40 @@ app.secret_key = "dev-secret-key"
 with app.app_context():
     init_db()
     seed_db()
+
+
+# ------------------------------------------------------------------ #
+# Helpers                                                             #
+# ------------------------------------------------------------------ #
+
+def _resolve_date_range(preset, start_str="", end_str=""):
+    today = date.today()
+    if preset == "this-month":
+        start = today.replace(day=1).isoformat()
+        end = today.isoformat()
+        label = today.strftime("%B %Y")
+    elif preset == "last-month":
+        last_prev = today.replace(day=1) - timedelta(days=1)
+        start = last_prev.replace(day=1).isoformat()
+        end = last_prev.isoformat()
+        label = last_prev.strftime("%B %Y")
+    elif preset == "last-3-months":
+        three_months_ago = today - timedelta(days=90)
+        start = three_months_ago.isoformat()
+        end = today.isoformat()
+        label = f"{three_months_ago.strftime('%d %b')} – {today.strftime('%d %b %Y')}"
+    elif preset == "custom":
+        try:
+            start_dt = datetime.strptime(start_str, "%Y-%m-%d")
+            end_dt = datetime.strptime(end_str, "%Y-%m-%d")
+            start = start_str
+            end = end_str
+            label = f"{start_dt.strftime('%d %b')} – {end_dt.strftime('%d %b %Y')}"
+        except ValueError:
+            preset, start, end, label = "all-time", None, None, "All Time"
+    else:
+        preset, start, end, label = "all-time", None, None, "All Time"
+    return preset, start, end, label
 
 
 # ------------------------------------------------------------------ #
@@ -103,12 +137,20 @@ def profile():
         "member_since": member_since,
         "initials": initials,
     }
-    stats        = get_expense_stats(session["user_id"])
-    transactions = get_recent_transactions(session["user_id"])
-    categories   = get_category_breakdown(session["user_id"])
+    preset, start_date, end_date, filter_label = _resolve_date_range(
+        request.args.get("preset", "all-time"),
+        request.args.get("start", ""),
+        request.args.get("end", ""),
+    )
+
+    stats        = get_expense_stats(session["user_id"], start_date, end_date)
+    transactions = get_recent_transactions(session["user_id"], start_date=start_date, end_date=end_date)
+    categories   = get_category_breakdown(session["user_id"], start_date, end_date)
 
     return render_template("profile.html", user=user, stats=stats,
-                           transactions=transactions, categories=categories)
+                           transactions=transactions, categories=categories,
+                           active_preset=preset, start_date=start_date,
+                           end_date=end_date, filter_label=filter_label)
 
 
 @app.route("/expenses/add")
