@@ -6,7 +6,7 @@ from database.db import (
     init_db, seed_db, create_user, get_user_by_email,
     get_user_by_id, get_expense_stats,
     get_recent_transactions, get_category_breakdown,
-    insert_expense,
+    insert_expense, get_expense_by_id, update_expense,
 )
 
 CATEGORIES = ["Food", "Transport", "Bills", "Health", "Entertainment", "Shopping", "Other"]
@@ -208,9 +208,36 @@ def add_expense():
                            today=date.today().isoformat())
 
 
-@app.route("/expenses/<int:id>/edit")
-def edit_expense(id):
-    return "Edit expense — coming in Step 8"
+@app.route("/expenses/<int:expense_id>/edit", methods=["GET", "POST"])
+def edit_expense(expense_id):
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    expense = get_expense_by_id(expense_id)
+    if expense is None:
+        abort(404)
+    if expense["user_id"] != session["user_id"]:
+        abort(403)
+
+    if request.method == "POST":
+        data, error = _validate_expense_form(request.form)
+        if error:
+            return render_template("edit_expense.html",
+                                   error=error,
+                                   form=request.form,
+                                   expense=expense,
+                                   categories=CATEGORIES,
+                                   today=date.today().isoformat()), 200
+        update_expense(expense_id, session["user_id"],
+                       data["amount"], data["category"],
+                       data["date"], data["description"])
+        flash("Expense updated.")
+        return redirect(url_for("profile"))
+
+    return render_template("edit_expense.html",
+                           expense=expense,
+                           categories=CATEGORIES,
+                           today=date.today().isoformat())
 
 
 @app.route("/expenses/<int:id>/delete")
